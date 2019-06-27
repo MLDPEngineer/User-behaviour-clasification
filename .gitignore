@@ -6,3 +6,7 @@ dask-worker-space/
 gr_boost
 
 *.pcl
+
+*.csv
+
+*.gz
