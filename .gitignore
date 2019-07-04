@@ -10,3 +10,7 @@ gr_boost
 *.csv
 
 *.gz
+
+*.tmp
+
+serialized/cat_boost_model
