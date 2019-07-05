@@ -88,23 +88,28 @@
 
 ***
 ### Разработка модели
-- выбор метода
+Нам необходим бинарный классификатор, для этой задачи могут быть применены: вероятностные модели, модели на основе решающих правил (деревовидные модели), нейросетевые архитектуры. Древовидные модели имеют ряд перимуществ: возможность апроксимации достаточно сложных функций, отсутствие необходимости в нормализации данных, возможность интерпретации результатов, положительный опыт в решинии данного вида задач.
+В качестве основной модели будем использовать градинтный бустинг. На сегодняшний день есть несколько опробированных библиотек градиентного бустинга: XGBoost, LightGBM, CatBoost.
+Поскольку данные содержат категориальные и численные признаки (переменные даты/времени, ссылочные переменные), то прежде чем их подавать на вход модели нужно применить препроцессинг:
+- к категориальным признакам нужно применить OneHotEncoding кодирование
+- к числовым различные методы бинаризации: (агломеративная кластеризация, класстеризация на основе центройдов, кластеризация с равномерными порогами дискретизации идр.)
 
-Here you can find baselines, kernels and other supplementary materials for SNA Hackathon 2019 event. The event is based on news feed ranking challenge split into three parts:
+Поиск "оптимальных" методов разбиения достаточно трудоемкая задача, но поскольку в библиотеке CatBoost реализованы данные методы в автоматическом режиме, плюс бибилиотека обладает богатыми возможностями визуализации процесса и результатов обучения то я применю именно её.
+В качестве лосса я использую кросс энтропию, в качестве целевой метрики AUC.
 
-* Ranking feeds based on features, extracted from photos.
-* Ranking feeds based on features, extracted from texts.
-* Ranking feeds based on collaborative features.
+***
+### Результаты
+- Получена base line (первое приближение) модель с неплохим результатом <b>0,76 AUC</b> на валидационном датасете и 0,77 AUC на обучающем. 
+- График ROC_AUC имеет "правильную" форму 
+![cat_boost_train](content/cat_boost_train.png "Процесс обучения CatBoost")
+![cat_boost_ROC_AUC](content/ROC_AUC.png "ROC AUC")
+![cat_boost_importances](content/cat_boost_importances.png "Важность признаков CatBoost")
 
-Details are available available at https://mlbootcamp.ru/round/17/tasks/.
 
-All baselines here are written using python 3.7 and based on the [Apache Arrow](https://arrow.apache.org) for reading parquet files (see [manual](https://arrow.apache.org/docs/python/install.html) for installation). Image processing is implemented using [MXNet](https://mxnet.incubator.apache.org) framework (see [manual](https://mxnet.incubator.apache.org/versions/master/install/index.html?platform=MacOS&language=Python&processor=CPU) for instllation) and [GluonCV](https://mxnet.incubator.apache.org/versions/master/gluon/index.html). Texts are processed using [Gensim](https://radimrehurek.com/gensim/) package (see [manual](https://radimrehurek.com/gensim/install.html) for installation).
-
-Content of the package:
-
-* Images.ipynb - baseline for images task based on "catability" (we estimate the probability that there is a cat on an image using [YOLOV3 network](https://gluon-cv.mxnet.io/build/examples_detection/demo_yolo.html) and rank items according to catability).
-* Texts.ipnynb - baseline for texts combining [gensim Doc2Vec](https://radimrehurek.com/gensim/models/doc2vec.html) with logistic regression for ranking.
-* Collaborative.ipynb - simple baseline for collaborative task, ranking with logistic regression on top features.
-
-More readings
-* [The short history of a smart news feed](https://habr.com/ru/company/mailru/blog/438392/)
+#### улучшения результата
+Результат описанного подхода можно улучшить, возможны следующие решения:
+- кластеризация обучающей выборки и затем стратификаця (балассировка с учетом классов)
+- обучение text_embedding моделей(word2vec, doc2vec, ELMO, BERT) на корпусе текстов(википедия, новости, твиттер), а затем получение инференс эмбединг векторов (подавая текст на вход данной модели) и добавление его в CatBoost модель в качестве вектора признаков к ужеимеющимся колаборативным признакам
+- использование сверточных предобученных моделей (VGG, ResNet идр.) для получения image embedding вектора как и в предыдущем примере и добавлении его в качестве вектора признаков к ужеимеющимся колаборативным признакам в CatBoost
+- использование residual layers, FPN подхода для моделей предыдущего шага
+- использование Fully Connected NN с учетом всех предыдущих шагов для замены CatBoost классификатора
